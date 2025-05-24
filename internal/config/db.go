@@ -22,7 +22,7 @@ func LoadEnv() {
 func NewDB() *bun.DB {
 	LoadEnv()
 
-	dsn := os.Getenv("POSTGRES_CONNECTION_STRING")
+	dsn := os.Getenv("POSTGRES_DSN")
 	if dsn == "" {
 		log.Fatal("DB_DSN is not set")
 	}
