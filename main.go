@@ -2,18 +2,20 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"github.com/aq-simei/coin-pilot/api/router"
-	"github.com/aq-simei/coin-pilot/internal/config"
+	"github.com/aq-simei/coin-pilot/internal/config/database"
+	"github.com/aq-simei/coin-pilot/internal/config/logger"
 )
 
 func main() {
-	// Load DB connection
+	// Initialize logger
+	logger.Init()
 
-	dbInstance := config.NewDB()
-	defer config.CloseDB(context.Background(), dbInstance)
+	// Load DB connection
+	dbInstance := database.NewDB()
+	defer database.CloseDB(context.Background(), dbInstance)
 
 	// Initialize Router
 	router := router.NewRouter(dbInstance)
@@ -25,8 +27,8 @@ func main() {
 	}
 
 	// Start server
-	log.Printf("Server running on port %s", port)
+	logger.Info("Server running on port %s", port)
 	if err := router.Run(":" + port); err != nil {
-		log.Fatalf("failed to start server: %v", err)
+		logger.Fatal("failed to start server: %v", err)
 	}
 }
