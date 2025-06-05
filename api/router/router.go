@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/aq-simei/coin-pilot/api/middlewares"
 	"github.com/gin-gonic/gin"
 	"github.com/uptrace/bun"
 )
@@ -11,7 +12,7 @@ func NewRouter(db *bun.DB) *gin.Engine {
 	router.Use(gin.Recovery())
 
 	r := router.Group("/api/v1")
-	userHandler := r.Group("/users")
+	userHandler := r.Group("/users").Use(middlewares.ApiKeyMiddleware())
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "Welcome to the API",
