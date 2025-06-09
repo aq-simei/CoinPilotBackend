@@ -14,6 +14,7 @@ import (
 func ApiKeyMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		apiKey := c.GetHeader("x-api-key")
+		logger.Info("Passing by ApiKeyMiddleware: %v", apiKey)
 		if apiKey == "" || apiKey != environment.GetEnv("API_SECRET") {
 			logger.Info("API key missing or invalid")
 			c.AbortWithStatus(http.StatusForbidden)
@@ -26,6 +27,7 @@ func ApiKeyMiddleware() gin.HandlerFunc {
 func JwtMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
+		logger.Info("Authorization header: %v", authHeader)
 		if authHeader == "" {
 			logger.Info("Authorization header missing")
 			responses.InternalServerError(c, "")
@@ -45,7 +47,7 @@ func JwtMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 			jwtSecret := []byte(environment.GetEnv("JWT_SECRET"))
 			return jwtSecret, nil
 		})
