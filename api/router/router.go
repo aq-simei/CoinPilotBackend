@@ -1,12 +1,15 @@
 package router
 
 import (
+	"github.com/aq-simei/coin-pilot/api/controller"
 	"github.com/aq-simei/coin-pilot/api/middlewares"
+	"github.com/aq-simei/coin-pilot/api/repository"
+	"github.com/aq-simei/coin-pilot/api/service"
 	"github.com/gin-gonic/gin"
-	"github.com/uptrace/bun"
+	"gorm.io/gorm"
 )
 
-func NewRouter(db *bun.DB) *gin.Engine {
+func NewRouter(db *gorm.DB) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -23,11 +26,12 @@ func NewRouter(db *bun.DB) *gin.Engine {
 			"status": "OK",
 		})
 	})
-	userHandler.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "User endpoint",
-		})
-	})
+	userRepository := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepository)
+	userController := controller.NewUserController(userService)
+	userHandler.GET("/", userController.GetUser)
+	userHandler.POST("/", userController.CreateUser)
+	userHandler.PUT("/:id", userController.UpdateUser)
 
 	return router
 }
