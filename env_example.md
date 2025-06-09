@@ -8,3 +8,4 @@ tion
 NODE_ENV=development
 PORT=3000
 POSTGRES_DSN=postgresql://coinpilot:postgres@localhost:5432/coinpilot_dev?sslmode=disable
+JWT_SECRET=

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 
 	"github.com/aq-simei/coin-pilot/api/router"
@@ -15,7 +14,7 @@ func main() {
 
 	// Load DB connection
 	dbInstance := database.NewDB()
-	defer database.CloseDB(context.Background(), dbInstance)
+	database.RunMigrations(dbInstance)
 
 	// Initialize Router
 	router := router.NewRouter(dbInstance)
