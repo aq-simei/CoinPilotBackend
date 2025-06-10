@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 
+	"github.com/aq-simei/coin-pilot/api/models"
 	"github.com/aq-simei/coin-pilot/api/service"
 	responses "github.com/aq-simei/coin-pilot/internal"
 	errors "github.com/aq-simei/coin-pilot/internal/config/error"
@@ -75,11 +76,7 @@ func (uc *UserControllerImpl) CreateUser(c *gin.Context) {
 
 func (uc *UserControllerImpl) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
-	var userPayload struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var userPayload models.UpdateUserPayload
 	if err := c.ShouldBindJSON(&userPayload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return

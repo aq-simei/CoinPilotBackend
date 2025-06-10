@@ -11,12 +11,8 @@ import (
 
 type UserService interface {
 	GetUser(ctx context.Context, id string) (any, error)
-	CreateUser(ctx context.Context, userPayload struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}) error
-	UpdateUser(ctx context.Context, id string, userPayload models.CreateUserPayload) error
+	CreateUser(ctx context.Context, userPayload models.CreateUserPayload) error
+	UpdateUser(ctx context.Context, id string, userPayload models.UpdateUserPayload) error
 	DeleteUser(ctx context.Context, id string) error
 }
 
@@ -56,19 +52,13 @@ func (s *UserServiceImpl) GetUser(ctx context.Context, id string) (any, error) {
 	return userResponse, nil
 }
 
-func (s *UserServiceImpl) CreateUser(ctx context.Context, userPayload struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-},
+func (s *UserServiceImpl) CreateUser(ctx context.Context, userPayload models.CreateUserPayload,
 ) error {
-	// Pass errors directly from the repository
 	return s.repo.CreateUser(ctx, userPayload)
 }
 
-func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, userPayload models.CreateUserPayload,
+func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, userPayload models.UpdateUserPayload,
 ) error {
-	// Assuming the repository has an UpdateUser method
 	err := s.repo.UpdateUser(ctx, id, userPayload)
 	if err != nil {
 		return err
@@ -77,7 +67,6 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, userPayload
 }
 
 func (s *UserServiceImpl) DeleteUser(ctx context.Context, id string) error {
-	// Assuming the repository has a DeleteUser method
 	err := s.repo.DeleteUser(ctx, id)
 	if err != nil {
 		return err

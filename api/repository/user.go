@@ -14,7 +14,7 @@ import (
 type UserRepository interface {
 	GetUser(ctx context.Context, id string) (*models.User, error)
 	CreateUser(ctx context.Context, userPayload models.CreateUserPayload) error
-	UpdateUser(ctx context.Context, id string, userPayload models.CreateUserPayload) error
+	UpdateUser(ctx context.Context, id string, userPayload models.UpdateUserPayload) error
 	DeleteUser(ctx context.Context, id string) error
 }
 
@@ -79,23 +79,40 @@ func (r *UserRepositoryImpl) CreateUser(
 func (r *UserRepositoryImpl) UpdateUser(
 	ctx context.Context,
 	id string,
-	userPayload models.CreateUserPayload,
+	userPayload models.UpdateUserPayload,
 ) error {
-	user := &models.User{
-		Name:     userPayload.Name,
-		Email:    userPayload.Email,
-		Password: userPayload.Password,
+	// map holding non null fields
+	updateData := map[string]any{}
+
+	if userPayload.Name != nil {
+		updateData["name"] = *userPayload.Name
+	}
+	if userPayload.Email != nil {
+		updateData["email"] = *userPayload.Email
+	}
+	if userPayload.Password != nil {
+		hashedPassword, err := security.HashPassword(*userPayload.Password)
+		if err != nil {
+			logger.Error("error hashing password: %v", err)
+			return errors.New(http.StatusInternalServerError, "error hashing password")
+		}
+		updateData["password"] = hashedPassword
 	}
 
-	existingUser := &models.User{}
-	result := r.db.Where("id = ?", id).First(existingUser)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return errors.NewNotFound("user_not_found")
+	// Check for existing user with the same email (if email is being updated)
+	if email, ok := updateData["email"]; ok {
+		existingUserWithSameEmail := r.db.First(&models.User{}, "email = ? AND id != ?", email, id)
+		if existingUserWithSameEmail.Error != nil && existingUserWithSameEmail.Error != gorm.ErrRecordNotFound {
+			return errors.New(http.StatusInternalServerError, "error fetching user")
+		}
+		if existingUserWithSameEmail.Error == nil {
+			logger.Error("attempt to update a user with an existing email: %v", email)
+			return errors.New(http.StatusConflict, "invalid email")
 		}
 	}
 
-	result = r.db.Model(&models.User{}).Where("id = ?", id).Updates(user)
+	// Perform the update
+	result := r.db.Model(&models.User{}).Where("id = ?", id).Updates(updateData)
 	if result.Error != nil {
 		return result.Error
 	}
