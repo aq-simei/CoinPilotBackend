@@ -16,6 +16,7 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, userPayload models.CreateUserPayload) error
 	UpdateUser(ctx context.Context, id string, userPayload models.UpdateUserPayload) error
 	DeleteUser(ctx context.Context, id string) error
+	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 }
 
 type UserRepositoryImpl struct {
@@ -32,9 +33,13 @@ func (r *UserRepositoryImpl) GetUser(
 ) (*models.User, error) {
 	logger.Info("Fetching user with ID: %s", id)
 	user := &models.User{}
+	// Use Preload to include the Records field in the result
 	result := r.db.First(user, "id = ?", id)
 	if result.Error != nil {
 		logger.Error("error fetching user: %v", result.Error)
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, errors.New(http.StatusNotFound, "user not found")
+		}
 		return nil, errors.New(http.StatusInternalServerError, "error fetching user")
 	}
 	return user, nil
@@ -103,7 +108,7 @@ func (r *UserRepositoryImpl) UpdateUser(
 	if email, ok := updateData["email"]; ok {
 		existingUserWithSameEmail := r.db.First(&models.User{}, "email = ? AND id != ?", email, id)
 		if existingUserWithSameEmail.Error != nil && existingUserWithSameEmail.Error != gorm.ErrRecordNotFound {
-			return errors.New(http.StatusInternalServerError, "error fetching user")
+			return errors.NewInternal("error checking existing user with same email")
 		}
 		if existingUserWithSameEmail.Error == nil {
 			logger.Error("attempt to update a user with an existing email: %v", email)
@@ -132,4 +137,16 @@ func (r *UserRepositoryImpl) DeleteUser(ctx context.Context, id string) error {
 		return errors.NewNotFound("user_not_found")
 	}
 	return nil
+}
+
+func (r *UserRepositoryImpl) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	user := &models.User{}
+	result := r.db.Where("email = ?", email).First(user)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, errors.New(http.StatusNotFound, "user not found")
+		}
+		return nil, errors.New(http.StatusInternalServerError, "error fetching user by email")
+	}
+	return user, nil
 }

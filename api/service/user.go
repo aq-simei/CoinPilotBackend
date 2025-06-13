@@ -7,6 +7,7 @@ import (
 	"github.com/aq-simei/coin-pilot/api/models"
 	"github.com/aq-simei/coin-pilot/api/repository"
 	errors "github.com/aq-simei/coin-pilot/internal/config/error"
+	"github.com/aq-simei/coin-pilot/internal/config/security"
 )
 
 type UserService interface {
@@ -14,6 +15,8 @@ type UserService interface {
 	CreateUser(ctx context.Context, userPayload models.CreateUserPayload) error
 	UpdateUser(ctx context.Context, id string, userPayload models.UpdateUserPayload) error
 	DeleteUser(ctx context.Context, id string) error
+	Login(ctx context.Context, email, password string) (string, error)
+	Logout(ctx context.Context, claims any) error
 }
 
 type UserServiceImpl struct {
@@ -43,6 +46,7 @@ func (s *UserServiceImpl) GetUser(ctx context.Context, id string) (any, error) {
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
+		Records:   user.Records,
 	}
 
 	if err != nil {
@@ -71,5 +75,31 @@ func (s *UserServiceImpl) DeleteUser(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (s *UserServiceImpl) Login(ctx context.Context, email, password string) (string, error) {
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok && appErr.Code == http.StatusNotFound {
+			return "", errors.NewUnauthorized()
+		}
+		return "", errors.NewInternal("Failed to fetch user")
+	}
+
+	if !security.CheckPassword(user.Password, password) {
+		return "", errors.NewUnauthorized()
+	}
+
+	token, err := security.GenerateJWT(user.ID)
+	if err != nil {
+		return "", errors.NewInternal("Failed to generate token")
+	}
+
+	return token, nil
+}
+
+func (s *UserServiceImpl) Logout(ctx context.Context, claims any) error {
+	// Implement token invalidation logic if needed (e.g., blacklist the token)
 	return nil
 }
