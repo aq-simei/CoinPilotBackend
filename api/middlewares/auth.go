@@ -7,8 +7,8 @@ import (
 	responses "github.com/aq-simei/coin-pilot/internal"
 	"github.com/aq-simei/coin-pilot/internal/config/environment"
 	"github.com/aq-simei/coin-pilot/internal/config/logger"
+	"github.com/aq-simei/coin-pilot/internal/config/security"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func ApiKeyMiddleware() gin.HandlerFunc {
@@ -30,41 +30,32 @@ func JwtMiddleware() gin.HandlerFunc {
 		logger.Info("Authorization header: %v", authHeader)
 		if authHeader == "" {
 			logger.Info("Authorization header missing")
-			responses.InternalServerError(c, "")
+			responses.Unauthorized(c, "Authorization header missing")
 			return
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			logger.Info("Authorization header does not satisfy Bearer format")
-			responses.InternalServerError(c, "")
+			responses.Unauthorized(c, "Invalid authorization format")
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == "" {
 			logger.Info("Token string is empty")
-			responses.InternalServerError(c, "")
+			responses.Unauthorized(c, "Token is missing")
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-			jwtSecret := []byte(environment.GetEnv("JWT_SECRET"))
-			return jwtSecret, nil
-		})
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-
-		// Grab it all, but dont give info on specific error
-		if err != nil || !token.Valid || !ok {
-			logger.Info("Parsed token claims: %v", claims)
-			logger.Info("Token valid: %v", ok)
-			logger.Info("Token error: %v", err)
-			responses.Unauthorized(c, "Invalid token")
+		userID, err := security.ParseJWT(tokenString)
+		if err != nil {
+			logger.Info("Failed to parse JWT: %v", err)
+			responses.Unauthorized(c, err.Error())
 			return
 		}
 
-		// Store claims in context for future use
-		c.Set("claims", claims)
+		// Store user_id in context for future use
+		c.Set("user_id", userID)
 		c.Next()
 	}
 }
