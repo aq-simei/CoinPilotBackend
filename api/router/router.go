@@ -16,6 +16,7 @@ func NewRouter(db *gorm.DB) *gin.Engine {
 
 	r := router.Group("/api/v1")
 	userHandler := r.Group("/users")
+	recordHandler := r.Group("/records")
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "Welcome to the API",
@@ -29,7 +30,13 @@ func NewRouter(db *gorm.DB) *gin.Engine {
 	userRepository := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepository)
 	userController := controller.NewUserController(userService)
-	controller.RegisterUserControllerRoutes(userHandler, userController)
+	recordRepository := repository.NewRecordRepository(db)
+	recordService := service.NewRecordService(recordRepository)
+	recordController := controller.NewRecordController(recordService)
 	userHandler.Use(middlewares.ApiKeyMiddleware())
+	recordHandler.Use(middlewares.JwtMiddleware())
+	controller.RegisterUserControllerRoutes(userHandler, userController)
+	controller.RegisterRecordRoutes(recordHandler, recordController)
+
 	return router
 }
