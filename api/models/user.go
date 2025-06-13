@@ -11,6 +11,7 @@ type User struct {
 	Name      string         `gorm:"not null" json:"name"`
 	Email     string         `gorm:"unique;not null" json:"email"`
 	Password  string         `gorm:"not null" json:"password,omitempty"`
+	Records   []Record       `gorm:"foreignKey:UserID"` // has-many
 	CreatedAt time.Time      `gorm:"not null;default:current_timestamp" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"not null;default:current_timestamp" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -29,6 +30,7 @@ type UserResponse struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"`
+	Records   []Record   `json:"records,omitempty"` // Include records if needed
 }
 
 type UpdateUserPayload struct {
